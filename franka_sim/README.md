@@ -13,12 +13,26 @@ It includes a state-based and a vision-based Franka lift cube task environment.
 
 # Run Experiments
 - Run `python examples/record_success_fail_sim.py --exp_name pick_cube_sim --successes_needed 2000` to record success and failure trajectories which is used for training the reward model, you can define the number of successes needed. Controller type can be set in `examples/experiments/pick_cube_sim/config.py`. You can use the keyboard to switch the camera view of each window by pressing `[` or  `]`.
+- 
 - Run `python examples/record_demos_sim.py --exp_name pick_cube_sim --successes_needed 30` to record demonstrations for training the policy, you can define the number of successes needed. Controller type can be set in `examples/experiments/pick_cube_sim/config.py`. You can use the keyboard to switch the camera view of each window by pressing `[` or  `]`.
 - To train a rlpd agent to solve the pick cube task:
     - `cd examples/experiments/pick_cube_sim` 
     - run `bash run_actor.sh`, Update the command-line arguments in `run_actor.sh` based on your specific settings.
     - run `bash run_learner.sh`, Update the command-line arguments in `run_learner.sh` based on your specific settings.
 
+
+```sh
+cd examples/experiments/pick_cube_sim
+
+python ../../record_success_fail_sim.py --exp_name pick_cube_sim --successes_needed 200
+
+python ../../train_reward_classifier.py --exp_name pick_cube_sim
+
+python ../../record_demos_sim.py --exp_name pick_cube_sim --successes_needed 30
+
+bash run_actor.sh
+bash run_learner.sh
+```
 # Troubleshooting
 Sometimes the window will frozen and simulation will stop. Even if you killed the process, the program will still be running in the background. You can kill the process by running
   - `kill -9 $(pidof simulate)`.

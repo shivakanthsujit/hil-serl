@@ -17,3 +17,6 @@ serl_robot_infra/serl_robot_infra.egg-info/
 MUJOCO_LOG.TXT
 
 .venv
+.aider*
+examples/experiments/pick_cube_sim/classifier_ckpt/
+examples/experiments/pick_cube_sim/six_run
