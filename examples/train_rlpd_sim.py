@@ -5,6 +5,7 @@ import time
 import jax
 import jax.numpy as jnp
 import numpy as np
+from termcolor import cprint
 import tqdm
 from absl import app, flags
 from flax.training import checkpoints
@@ -155,6 +156,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
     # Create the dual viewer
     dual_viewer = DualMujocoViewer(env.model, env.data)
 
+    episode_num = 0
     pbar = tqdm.tqdm(range(start_step, config.max_steps), dynamic_ncols=True)
     with dual_viewer as viewer:
         for step in pbar:
@@ -213,11 +215,13 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
 
                 obs = next_obs
                 if done or truncated:
+                    episode_num += 1
                     info["episode"]["intervention_count"] = intervention_count
                     info["episode"]["intervention_steps"] = intervention_steps
                     stats = {"environment": info}  # send stats to the learner to log
                     client.request("send-stats", stats)
-                    pbar.set_description(f"last return: {running_return}")
+                    tqdm.tqdm.write(f"episode: {episode_num}, return: {running_return}")
+                    pbar.set_description(f"episode: {episode_num}, last return: {running_return}")
                     running_return = 0.0
                     intervention_count = 0
                     intervention_steps = 0
@@ -359,7 +363,8 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
             step > 0
             and config.checkpoint_period
             and step % config.checkpoint_period == 0
-        ):
+        ):  
+            tqdm.tqdm.write(f"Saving checkpoint at step {step}")
             checkpoints.save_checkpoint(
                 os.path.abspath(FLAGS.checkpoint_path), agent.state, step=step, keep=100
             )

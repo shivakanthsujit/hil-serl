@@ -7,6 +7,7 @@ import flax.linen as nn
 from flax.training import checkpoints
 import numpy as np
 import optax
+from termcolor import cprint
 from tqdm import tqdm
 from absl import app, flags
 
@@ -70,7 +71,11 @@ def main(_):
         include_label=True,
     )
 
-    success_paths = glob.glob(os.path.join(os.getcwd(), "classifier_data", "*success*.pkl"))
+    base_dir = os.path.join(os.getcwd(), "classifier_data")
+    cprint(f"Loading data from {base_dir}", "green")
+    success_paths = glob.glob(os.path.join(base_dir, "*success*.pkl"))
+    cprint(f"Found {len(success_paths)} successful pickle file to collect.", "green")
+    assert len(success_paths) > 0, "No successful transitions found."
     for path in success_paths:
         success_data = pkl.load(open(path, "rb"))
         for trans in success_data:
@@ -104,7 +109,9 @@ def main(_):
         capacity=50000,
         include_label=True,
     )
-    failure_paths = glob.glob(os.path.join(os.getcwd(), "classifier_data", "*failure*.pkl"))
+    failure_paths = glob.glob(os.path.join(base_dir, "*failure*.pkl"))
+    cprint(f"Found {len(failure_paths)} failure pickle file to collect.", "green")
+    assert len(failure_paths) > 0, "No failure transitions found."
     for path in failure_paths:
         failure_data = pkl.load(
             open(path, "rb")
@@ -220,7 +227,7 @@ def main(_):
         )
         eval_accuracy = eval_step(classifier, eval_batch, key)
 
-        print(
+        tqdm.write(
             f"Epoch: {epoch+1}, Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.4f}, Eval Accuracy: {eval_accuracy:.4f}"
         )
 
