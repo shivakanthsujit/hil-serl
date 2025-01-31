@@ -383,10 +383,13 @@ def main(_):
     rng, sampling_rng = jax.random.split(rng)
 
     assert FLAGS.exp_name in CONFIG_MAPPING, "Experiment folder not found."
+    cprint(f"USING ENVIRONMENT REWARD. NOT CLASSIFIER", "green")
+    time.sleep(2)
     env = config.get_environment(
         fake_env=False,
         save_video=FLAGS.save_video,
-        classifier=True,
+        # classifier=True,
+        classifier=False,
     )
     env = RecordEpisodeStatistics(env)
 
