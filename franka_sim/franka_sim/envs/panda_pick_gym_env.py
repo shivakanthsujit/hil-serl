@@ -195,6 +195,12 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         npos = np.clip(pos + dpos, *_CARTESIAN_BOUNDS)
         self._data.mocap_pos[0] = npos
 
+        # # Set the mocap orientation.
+        # current_quat = self._data.mocap_quat[0].copy()
+        # delta_quat = self._axis_angle_to_quaternion(np.array([rx, ry, rz]) * self._action_scale[0])
+        # new_quat = self._quaternion_multiply(current_quat, delta_quat)
+        # self._data.mocap_quat[0] = new_quat
+
         # Set gripper grasp.
         g = self._data.ctrl[self._gripper_ctrl_id] / 255
         dg = grasp * self._action_scale[1]
@@ -222,6 +228,25 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         terminated = self.time_limit_exceeded() or success or outside_bounds
 
         return obs, rew, terminated, False, {"succeed": success}
+
+    def _axis_angle_to_quaternion(self, axis_angle: np.ndarray) -> np.ndarray:
+        theta = np.linalg.norm(axis_angle)
+        if theta > 0.0:
+            axis = axis_angle / theta
+            quat = np.concatenate(([np.cos(theta / 2)], np.sin(theta / 2) * axis))
+        else:
+            quat = np.array([1, 0, 0, 0])  # Identity quaternion
+        return quat
+
+    def _quaternion_multiply(self, q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
+        w1, x1, y1, z1 = q1
+        w2, x2, y2, z2 = q2
+        return np.array([
+            w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
+            w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
+            w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
+            w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+        ])
 
     def render(self):
         rendered_frames = []
