@@ -413,6 +413,7 @@ class JoystickIntervention(gym.ActionWrapper):
 
         self.expert = JoystickExpert(controller_type=controller_type)
         self.left, self.right = False, False
+        self.interrupt_action = False
 
     def action(self, action: np.ndarray) -> np.ndarray:
         """
@@ -424,7 +425,7 @@ class JoystickIntervention(gym.ActionWrapper):
         deadzone = 0.03
 
         expert_a, buttons = self.expert.get_action()
-        self.left, self.right = tuple(buttons)
+        self.left, self.right, self.interrupt_action = tuple(buttons)
         intervened = False
 
         if np.linalg.norm(expert_a) > deadzone:
@@ -461,6 +462,7 @@ class JoystickIntervention(gym.ActionWrapper):
             info["intervene_action"] = new_action
         info["left"] = self.left
         info["right"] = self.right
+        info["interrupt_action"] = self.interrupt_action
         return obs, rew, done, truncated, info
     
     def close(self):

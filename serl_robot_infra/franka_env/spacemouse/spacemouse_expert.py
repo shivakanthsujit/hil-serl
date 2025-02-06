@@ -132,7 +132,7 @@ class JoystickExpert:
         self.manager = multiprocessing.Manager()
         self.latest_data = self.manager.dict()
         self.latest_data["action"] = [0.0] * 6
-        self.latest_data["buttons"] = [False, False]
+        self.latest_data["buttons"] = [False, False, False]
 
         # Start a process to continuously read Joystick state
         self.process = multiprocessing.Process(target=self._read_joystick)
@@ -142,7 +142,7 @@ class JoystickExpert:
 
     def _read_joystick(self):        
         action = [0.0] * 6
-        buttons = [False, False]
+        buttons = [False, False, False]
         
         while True:
             try:
@@ -182,6 +182,8 @@ class JoystickExpert:
                         buttons[0] = bool(event.state)
                     elif event.code == 'BTN_TR':
                         buttons[1] = bool(event.state)
+                    elif event.code == 'BTN_EAST':
+                        buttons[2] = bool(event.state)
 
                 # Update the shared state
                 self.latest_data["action"] = action
