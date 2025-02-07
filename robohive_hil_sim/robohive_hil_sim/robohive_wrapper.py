@@ -68,6 +68,7 @@ class RobohiveWrapper():
         self.rgb_keys = [k for k in self.env.visual_keys if "rgb" in k]
         self.key_infos = {k: visualkey_to_info(k) for k in self.rgb_keys}
         self.image_key_map = {k: self.key_infos[k].camera for k in self.rgb_keys}
+        self.env_image_keys = list(self.image_key_map.values())
 
         if self.image_obs:
             image_space_dict = {
