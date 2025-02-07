@@ -21,7 +21,8 @@ if __name__ == "__main__":
     controller_type = ControllerType[args.controller.upper()]
 
 # env = envs.PandaPickCubeGymEnv(render_mode="human", image_obs=True)
-env = gym.make("PandaPickCubeVision-v0", render_mode="human", image_obs=True)
+env = envs.PandaBinGymEnv(render_mode="human", image_obs=True)
+# env = gym.make("PandaPickCubeVision-v0", render_mode="human", image_obs=True)
 env = JoystickIntervention(env, controller_type=controller_type)
 
 env.reset()
@@ -33,6 +34,13 @@ dual_viewer = DualMujocoViewer(env.unwrapped.model, env.unwrapped.data)
 
 # intervene on position control
 with dual_viewer as viewer:
+    rew = 0
     for i in range(100000):
-        env.step(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+        _, r, done, truncated, _ = env.step(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+        rew += r
+        done = done or truncated
+        if done:
+            print(f"reward: {rew}")
+            rew = 0
+            env.reset()
         viewer.sync()
