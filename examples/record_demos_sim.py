@@ -1,4 +1,5 @@
 import os
+from robohive_hil_sim.viewer_utils import OpenCVViewer
 from tqdm import tqdm
 import numpy as np
 import copy
@@ -30,7 +31,11 @@ def main(_):
     trajectory = []
     returns = 0
     # Create the dual viewer
-    dual_viewer = DualMujocoViewer(env.unwrapped.model, env.unwrapped.data)
+    if "robohive" in FLAGS.exp_name:
+        dual_viewer = OpenCVViewer(env.base_env)
+    else:
+        dual_viewer = DualMujocoViewer(env.unwrapped.model, env.unwrapped.data)
+
 
     print("Press shift to start recording.\nIf your controller is not working check controller_type (default is xbox) is configured in examples/experiments/pick_cube_sim/config.py")
     with dual_viewer as viewer:

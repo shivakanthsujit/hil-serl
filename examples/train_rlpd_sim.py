@@ -5,6 +5,7 @@ import time
 import jax
 import jax.numpy as jnp
 import numpy as np
+from robohive_hil_sim.viewer_utils import OpenCVViewer
 from termcolor import cprint
 import tqdm
 from absl import app, flags
@@ -155,7 +156,10 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
     intervention_steps = 0
 
     # Create the dual viewer
-    dual_viewer = DualMujocoViewer(env.model, env.data)
+    if "robohive" in FLAGS.exp_name:
+        dual_viewer = OpenCVViewer(env.base_env)
+    else:
+        dual_viewer = DualMujocoViewer(env.model, env.data)
 
 
     episode_num = 0
