@@ -32,6 +32,7 @@ class DefaultTrainingConfig:
 
     eval_checkpoint_step: int = 0
     eval_n_trajs: int = 5
+    pretraining_steps: int = 0
 
     image_keys: List[str] = None
     classifier_keys: List[str] = None

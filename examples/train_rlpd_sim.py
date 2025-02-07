@@ -113,11 +113,11 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
         print(f"average time: {np.mean(time_list)}")
         return  # after done eval, return and exit
     
-    start_step = (
-        int(os.path.basename(natsorted(glob.glob(os.path.join(FLAGS.checkpoint_path, "buffer/*.pkl")))[-1])[12:-4]) + 1
-        if FLAGS.checkpoint_path and os.path.exists(FLAGS.checkpoint_path)
-        else 0
-    )
+    start_step = 0
+    if FLAGS.checkpoint_path and os.path.exists(FLAGS.checkpoint_path):
+        buffer_vals = glob.glob(os.path.join(FLAGS.checkpoint_path, "buffer/*.pkl"))
+        if len(buffer_vals) > 0:
+            start_step = int(os.path.basename(natsorted(buffer_vals)[-1])[12:-4]) + 1
 
     datastore_dict = {
         "actor_env": data_store,
@@ -330,15 +330,34 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
         train_networks_to_update = frozenset({"critic", "grasp_critic", "actor", "temperature"})
 
     for step in tqdm.tqdm(
-        range(start_step, config.max_steps), dynamic_ncols=True, desc="learner"
-    ):
+        range(start_step, config.max_steps + config.pretraining_steps), dynamic_ncols=True, desc="learner"
+    ):  
+        if config.pretraining_steps !=0  and step == config.pretraining_steps:
+            # Loop to wait until replay_buffer is filled
+            pretraining_buffer_fillup = 100
+            pbar = tqdm.tqdm(
+                total=pretraining_buffer_fillup,
+                initial=len(replay_buffer),
+                desc="Filling up replay buffer",
+                position=0,
+                leave=True,
+            )
+            while len(replay_buffer) < pretraining_buffer_fillup:
+                pbar.update(len(replay_buffer) - pbar.n)  # Update progress bar
+                time.sleep(1)
+            pbar.update(len(replay_buffer) - pbar.n)  # Update progress bar
+            pbar.close()
+    
         # run n-1 critic updates and 1 critic + actor update.
         # This makes training on GPU faster by reducing the large batch transfer time from CPU to GPU
         for critic_step in range(config.cta_ratio - 1):
             with timer.context("sample_replay_buffer"):
-                batch = next(replay_iterator)
                 demo_batch = next(demo_iterator)
-                batch = concat_batches(batch, demo_batch, axis=0)
+                if config.pretraining_steps !=0 and step < config.pretraining_steps:
+                    batch = demo_batch
+                else:
+                    batch = next(replay_iterator)
+                    batch = concat_batches(batch, demo_batch, axis=0)
 
             with timer.context("train_critics"):
                 agent, critics_info = agent.update(
@@ -347,9 +366,12 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
                 )
 
         with timer.context("train"):
-            batch = next(replay_iterator)
             demo_batch = next(demo_iterator)
-            batch = concat_batches(batch, demo_batch, axis=0)
+            if config.pretraining_steps !=0 and step < config.pretraining_steps:
+                batch = demo_batch
+            else:
+                batch = next(replay_iterator)
+                batch = concat_batches(batch, demo_batch, axis=0)
             agent, update_info = agent.update(
                 batch,
                 networks_to_update=train_networks_to_update,
@@ -364,9 +386,11 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
             wandb_logger.log({"timer": timer.get_average_times()}, step=step)
 
         if (
-            step > 0
+            (step == config.pretraining_steps - 1 and config.pretraining_steps !=0)
+            or
+            (step > 0
             and config.checkpoint_period
-            and step % config.checkpoint_period == 0
+            and step % config.checkpoint_period == 0)
         ):  
             tqdm.tqdm.write(f"Saving checkpoint at step {step}")
             checkpoints.save_checkpoint(
