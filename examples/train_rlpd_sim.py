@@ -145,6 +145,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
 
     obs, _ = env.reset()
     done = False
+    episode_steps = 0
 
     # training loop
     timer = Timer()
@@ -156,7 +157,10 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
     # Create the dual viewer
     dual_viewer = DualMujocoViewer(env.model, env.data)
 
+
     episode_num = 0
+    total_intervention_data = 0
+    total_policy_steps = 0
     pbar = tqdm.tqdm(range(start_step, config.max_steps), dynamic_ncols=True)
     with dual_viewer as viewer:
         for step in pbar:
@@ -180,6 +184,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
 
                 step_start = time.time()
                 next_obs, reward, done, truncated, info = env.step(actions)
+                episode_steps += 1
 
                 if "left" in info:
                     info.pop("left")
@@ -220,8 +225,14 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
                     time.sleep(time_until_next_step)
                 if done or truncated:
                     episode_num += 1
+                    total_intervention_data += intervention_steps
+                    policy_steps = episode_steps - intervention_steps
+                    total_policy_steps += policy_steps
+                    info["total_intervention_data"] = total_intervention_data
+                    info["total_policy_steps"] = total_policy_steps
                     info["episode"]["intervention_count"] = intervention_count
                     info["episode"]["intervention_steps"] = intervention_steps
+                    info["episode"]["policy_steps"] = total_policy_steps
                     stats = {"environment": info}  # send stats to the learner to log
                     client.request("send-stats", stats)
                     tqdm.tqdm.write(f"episode: {episode_num}, return: {running_return}")
@@ -232,6 +243,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
                     already_intervened = False
                     client.update()
                     obs, _ = env.reset()
+                    episode_steps = 0
 
             if step > 0 and config.buffer_period > 0 and step % config.buffer_period == 0:
                 # dump to pickle file
