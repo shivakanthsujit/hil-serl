@@ -1,4 +1,5 @@
 import os
+from franka_sim.envs.panda_bin_gym_env import PandaBinGymEnv
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -38,9 +39,16 @@ class TrainConfig(DefaultTrainingConfig):
     setup_mode = "single-arm-learned-gripper"
     fake_env = False
     classifier = False
+    pretraining_steps: int = 10000
+    training_starts: int = 0
+    env_variant = "pick_cube_sim"
 
     def get_environment(self, fake_env=False, save_video=False, classifier=False):
-        env = PandaPickCubeGymEnv(render_mode="human", image_obs=True, reward_type="sparse", time_limit=100.0, control_dt=0.1)
+        assert self.env_variant in ["pick_cube_sim", "bin_sim"]
+        if self.env_variant == "pick_cube_sim":
+            env = PandaPickCubeGymEnv(render_mode="human", image_obs=True, reward_type="sparse", time_limit=100.0, control_dt=0.1)
+        elif self.env_variant == "bin_sim":
+            env = PandaBinGymEnv(render_mode="human", image_obs=True, reward_type="sparse", time_limit=100.0, control_dt=0.1)
         if not fake_env:
             env = JoystickIntervention(env=env, controller_type=self.controller_type)
         env = RelativeFrame(env)
@@ -62,3 +70,7 @@ class TrainConfig(DefaultTrainingConfig):
             env = MultiCameraBinaryRewardClassifierWrapper(env, reward_func)
         env = GripperPenaltyWrapper(env, penalty=-0.02)
         return env
+    
+class TrainConfigBin(TrainConfig):
+    env_variant = "bin_sim"
+    pretraining_steps: int = 15000

@@ -1,13 +1,11 @@
-export XLA_PYTHON_CLIENT_PREALLOCATE=false && \
-export XLA_PYTHON_CLIENT_MEM_FRACTION=.3 && \
-# python ../../train_rlpd_sim.py "$@" \
-#     --exp_name=pick_cube_sim \
-#     --checkpoint_path=six_run \
-#     --demo_path=demo_data/pick_cube_sim_10_demos_2025-01-31_13-42-32.pkl\
-#     --learner \
+export XLA_PYTHON_CLIENT_PREALLOCATE=false
+export XLA_PYTHON_CLIENT_MEM_FRACTION=.3
 
+exp_name=${1:-"bin_sim"}
+run_name=${2:-"six_run"}
 # Directory containing your demo files
 DEMO_DIR="demo_data"
+DEMO_DIR="${DEMO_DIR}/${exp_name}"
 
 # Initialize the demo paths variable
 DEMO_PATHS=""
@@ -19,7 +17,7 @@ for demo_file in "$DEMO_DIR"/*.pkl; do
 done
 
 python ../../train_rlpd_sim.py "$@" \
-    --exp_name=pick_cube_sim \
-    --checkpoint_path=six_run \
+    --exp_name=${exp_name} \
+    --checkpoint_path=/data/hil/${exp_name}/${run_name} \
     $DEMO_PATHS\
     --learner \

@@ -40,12 +40,14 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         render_mode: Literal["rgb_array", "human"] = "rgb_array",
         image_obs: bool = False,
         reward_type: str = "sparse",
+        xml_path: Path = _XML_PATH,
+        sampling_bounds: np.ndarray = _SAMPLING_BOUNDS,
     ):
         self._action_scale = action_scale
         self.reward_type = reward_type
 
         super().__init__(
-            xml_path=_XML_PATH,
+            xml_path=xml_path,
             seed=seed,
             control_dt=control_dt,
             physics_dt=physics_dt,
@@ -68,6 +70,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         camera_id_2 = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_CAMERA, camera_name_2)
         self.camera_id = (camera_id_1, camera_id_2)
         self.image_obs = image_obs
+        self.sampling_bounds = sampling_bounds
         
         # Caching.
         self._panda_dof_ids = np.asarray(
@@ -161,7 +164,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         self._data.mocap_pos[0] = tcp_pos
 
         # Sample a new block position.
-        block_xy = np.random.uniform(*_SAMPLING_BOUNDS)
+        block_xy = np.random.uniform(*self.sampling_bounds)
         self._data.jnt("block").qpos[:3] = (*block_xy, self._block_z)
         mujoco.mj_forward(self._model, self._data)
 
@@ -224,7 +227,8 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         rew = self._compute_reward()
         success = self._is_success()
         block_pos = self._data.sensor("block_pos").data
-        outside_bounds = np.any(block_pos[:2] < (_SAMPLING_BOUNDS[0] - 0.05)) or np.any(block_pos[:2] > (_SAMPLING_BOUNDS[1] + 0.05))
+        bound_eps = 0.3
+        outside_bounds = np.any(block_pos[:2] < (self.sampling_bounds[0] - bound_eps)) or np.any(block_pos[:2] > (self.sampling_bounds[1] + bound_eps))
         terminated = self.time_limit_exceeded() or success or outside_bounds
 
         return obs, rew, terminated, False, {"succeed": success}
