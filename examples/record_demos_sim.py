@@ -36,8 +36,12 @@ def main(_):
     with dual_viewer as viewer:
         while viewer.is_running():
             actions = np.zeros(env.action_space.sample().shape) 
+            step_start = time.time()
             next_obs, rew, done, truncated, info = env.step(actions)
             viewer.sync()
+            time_until_next_step = env.control_dt - (time.time() - step_start)
+            if "robohive" in FLAGS.exp_name and time_until_next_step > 0:
+                time.sleep(time_until_next_step)
             returns += rew
             if "intervene_action" in info:
                 actions = info["intervene_action"]

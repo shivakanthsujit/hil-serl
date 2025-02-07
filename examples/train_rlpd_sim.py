@@ -178,6 +178,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
             # Step environment
             with timer.context("step_env"):
 
+                step_start = time.time()
                 next_obs, reward, done, truncated, info = env.step(actions)
 
                 if "left" in info:
@@ -214,6 +215,9 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
                     demo_transitions.append(copy.deepcopy(transition))
 
                 obs = next_obs
+                time_until_next_step = env.control_dt - (time.time() - step_start)
+                if "robohive" in FLAGS.exp_name and time_until_next_step > 0:
+                    time.sleep(time_until_next_step)
                 if done or truncated:
                     episode_num += 1
                     info["episode"]["intervention_count"] = intervention_count
