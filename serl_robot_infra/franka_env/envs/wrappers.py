@@ -402,7 +402,7 @@ class DualGripperPenaltyWrapper(gym.RewardWrapper):
         return observation, reward, terminated, truncated, info
 
 class JoystickIntervention(gym.ActionWrapper):
-    def __init__(self, env, action_indices=None, controller_type=ControllerType.XBOX):
+    def __init__(self, env, action_indices=None, controller_type=ControllerType.XBOX, robohive_env=False):
         super().__init__(env)
 
         self.gripper_enabled = True
@@ -413,6 +413,7 @@ class JoystickIntervention(gym.ActionWrapper):
 
         self.expert = JoystickExpert(controller_type=controller_type)
         self.left, self.right = False, False
+        self.robohive_env = robohive_env
         self.interrupt_action = False
 
     def action(self, action: np.ndarray) -> np.ndarray:
@@ -447,6 +448,12 @@ class JoystickIntervention(gym.ActionWrapper):
             filtred_expert_a = np.zeros_like(expert_a)
             filtred_expert_a[self.action_indices] = expert_a[self.action_indices]
             expert_a = filtred_expert_a
+        
+        if self.robohive_env:
+            xaxis = expert_a[0]
+            yaxis = expert_a[1]
+            expert_a[0] = -yaxis
+            expert_a[1] = xaxis
 
         if intervened:
             return expert_a, True
