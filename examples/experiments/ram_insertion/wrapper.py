@@ -4,8 +4,12 @@ from franka_env.utils.rotations import euler_2_quat
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import requests
-from pynput import keyboard
-
+from termcolor import cprint
+try:
+    from pynput import keyboard
+except Exception as e:
+    cprint(f"Pyinput import error: {e}", "red")
+    
 from franka_env.envs.franka_env import FrankaEnv
 
 class RAMEnv(FrankaEnv):
