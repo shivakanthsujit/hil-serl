@@ -45,10 +45,11 @@ class TrainConfig(DefaultTrainingConfig):
 
     def get_environment(self, fake_env=False, save_video=False, classifier=False):
         assert self.env_variant in ["pick_cube_sim", "bin_sim"]
+        # ! Timelimit is expressed in sim time (in seconds) not timesteps (no. of env.step calls)
         if self.env_variant == "pick_cube_sim":
             env = PandaPickCubeGymEnv(render_mode="human", image_obs=True, reward_type="sparse", time_limit=100.0, control_dt=0.1)
         elif self.env_variant == "bin_sim":
-            env = PandaBinGymEnv(render_mode="human", image_obs=True, reward_type="sparse", time_limit=100.0, control_dt=0.1)
+            env = PandaBinGymEnv(render_mode="human", image_obs=True, reward_type="sparse", time_limit=50.0, control_dt=0.1)
         if not fake_env:
             env = JoystickIntervention(env=env, controller_type=self.controller_type)
         env = RelativeFrame(env)

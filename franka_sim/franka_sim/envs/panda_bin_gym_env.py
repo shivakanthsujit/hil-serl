@@ -9,7 +9,7 @@ from franka_sim.mujoco_gym_env import GymRenderingSpec
 
 _HERE = Path(__file__).parent
 _XML_PATH = _HERE / "xmls" / "arena_bin.xml"
-_SAMPLING_BOUNDS = np.asarray([[0.3, -0.15], [0.4, 0.15]])
+_SAMPLING_BOUNDS = np.asarray([[0.35, -0.15], [0.45, 0.15]])
 
 class PandaBinGymEnv(PandaPickCubeGymEnv):
     def __init__(
@@ -46,12 +46,8 @@ class PandaBinGymEnv(PandaPickCubeGymEnv):
         bin_pos = self._data.sensor("bin_pos").data
         target_error = bin_pos - block_pos
         abs_error = np.abs(target_error)
-        bounds = np.array([0.264, 0.21, 0.05])
-        # ! BIN rotated so change bounds
-        x_bound = bounds[0]
-        y_bound = bounds[1]
-        bounds[0] = y_bound
-        bounds[1] = x_bound
+        # ! BIN rotated so different bounds compared to robohive
+        bounds = np.array([0.21, 0.264, 0.05])
         in_bin = np.all(abs_error < bounds)
         return in_bin
     

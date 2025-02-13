@@ -32,7 +32,7 @@
     <body name="target" pos=".15 0 .5" quat="0 1 0 0" mocap="true">
       <geom name="target" type="box" size=".03 .03 .03" contype="0" conaffinity="0" rgba=".6 .3 .3 0"/>
     </body>
-    <body name="busbin0" pos='0.75 0 0' euler='0 0 0'>
+    <body name="busbin0" pos='0.75 0 -0.1' euler='0 0 0'>
       <include file="bin/busbin0_body.xml"/>
     </body>
   </worldbody>
