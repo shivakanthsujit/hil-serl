@@ -229,7 +229,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
 
                 obs = next_obs
                 time_until_next_step = env.control_dt - (time.time() - step_start)
-                if "robohive" in FLAGS.exp_name and time_until_next_step > 0:
+                if time_until_next_step > 0:
                     time.sleep(time_until_next_step)
                 if done or truncated:
                     episode_num += 1
