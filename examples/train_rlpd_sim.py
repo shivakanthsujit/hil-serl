@@ -198,6 +198,10 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
                     info.pop("left")
                 if "right" in info:
                     info.pop("right")
+                
+                if "interrupt_episode_action" in info:
+                    truncated = truncated or info["interrupt_episode_action"]
+                    info.pop("interrupt_episode_action")
 
                 # override the action with the intervention action
                 if "intervene_action" in info:
