@@ -358,9 +358,10 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
         train_critic_networks_to_update = frozenset({"critic", "grasp_critic"})
         train_networks_to_update = frozenset({"critic", "grasp_critic", "actor", "temperature"})
 
-    for step in tqdm.tqdm(
-        range(start_step, config.max_steps + config.pretraining_steps), dynamic_ncols=True, desc="learner"
-    ):  
+    learner_pbar = tqdm.tqdm(
+        range(start_step, config.max_steps + config.pretraining_steps), dynamic_ncols=True, desc="Learner"
+    )
+    for step in learner_pbar:  
         if config.pretraining_steps !=0  and step == config.pretraining_steps:
             # Loop to wait until replay_buffer is filled
             pretraining_buffer_fillup = 100
@@ -409,6 +410,7 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
         if step > 0 and step % (config.steps_per_update) == 0:
             agent = jax.block_until_ready(agent)
             server.publish_network(agent.state.params)
+            learner_pbar.set_postfix_str(f"ParamPublish: {step - start_step}")
 
         if step % config.log_period == 0 and wandb_logger:
             wandb_logger.log(update_info, step=step)
