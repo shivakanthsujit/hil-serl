@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from robohive_hil_sim.viewer_utils import OpenCVViewer
-from termcolor import cprint
+from termcolor import colored, cprint
 import tqdm
 from absl import app, flags
 from flax.training import checkpoints
@@ -134,9 +134,13 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
         timeout_ms=3000,
     )
 
+    param_update_step = 0
+    did_param_update = False
     # Function to update the agent with new params
     def update_params(params):
         nonlocal agent
+        nonlocal did_param_update
+        did_param_update = True
         agent = agent.replace(state=agent.state.replace(params=params))
 
     client.recv_network_callback(update_params)
@@ -271,6 +275,11 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
             if step % config.log_period == 0:
                 stats = {"timer": timer.get_average_times()}
                 client.request("send-stats", stats)
+            
+            if did_param_update:
+                param_update_step = step - start_step
+                pbar.set_postfix_str(f"ParamUpdate: {param_update_step}")
+                did_param_update = False
 
 
 ##############################################################################
@@ -479,16 +488,16 @@ def main(_):
     )
 
     if FLAGS.checkpoint_path is not None and os.path.exists(FLAGS.checkpoint_path):
-        input("Checkpoint path already exists. Press Enter to resume training.")
-        ckpt = checkpoints.restore_checkpoint(
-            os.path.abspath(FLAGS.checkpoint_path),
-            agent.state,
-        )
-        agent = agent.replace(state=ckpt)
-        ckpt_number = os.path.basename(
-            checkpoints.latest_checkpoint(os.path.abspath(FLAGS.checkpoint_path))
-        )[11:]
-        print_green(f"Loaded previous checkpoint at step {ckpt_number}.")
+        val = checkpoints.latest_checkpoint(os.path.abspath(FLAGS.checkpoint_path))
+        if val is not None:
+            input("Checkpoint path already exists. Press Enter to resume training.")
+            ckpt = checkpoints.restore_checkpoint(
+                os.path.abspath(FLAGS.checkpoint_path),
+                agent.state,
+            )
+            agent = agent.replace(state=ckpt)
+            ckpt_number = os.path.basename(val)[11:]
+            print_green(f"Loaded previous checkpoint at step {ckpt_number}.")
 
     def create_replay_buffer_and_wandb_logger():
         replay_buffer = MemoryEfficientReplayBufferDataStore(
