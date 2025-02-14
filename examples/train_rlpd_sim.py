@@ -248,7 +248,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
                     stats = {"environment": info}  # send stats to the learner to log
                     client.request("send-stats", stats)
                     tqdm.tqdm.write(f"episode: {episode_num}, return: {running_return}")
-                    pbar.set_description(f"episode: {episode_num}, last return: {running_return}")
+                    pbar.set_description(f"Ep {episode_num}")
                     running_return = 0.0
                     intervention_count = 0
                     intervention_steps = 0
