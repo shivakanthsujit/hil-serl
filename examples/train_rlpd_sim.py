@@ -172,6 +172,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
     pbar = tqdm.tqdm(range(start_step, config.max_steps), dynamic_ncols=True)
     with dual_viewer as viewer:
         for step in pbar:
+            step_start = time.time()
             timer.tick("total")
             viewer.sync()
 
@@ -190,7 +191,6 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
             # Step environment
             with timer.context("step_env"):
 
-                step_start = time.time()
                 next_obs, reward, done, truncated, info = env.step(actions)
                 episode_steps += 1
 
@@ -232,9 +232,6 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
                     demo_transitions.append(copy.deepcopy(transition))
 
                 obs = next_obs
-                time_until_next_step = env.control_dt - (time.time() - step_start)
-                if time_until_next_step > 0:
-                    time.sleep(time_until_next_step)
                 if done or truncated:
                     episode_num += 1
                     total_intervention_data += intervention_steps
@@ -275,6 +272,9 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
                     demo_transitions = []
 
             timer.tock("total")
+            time_until_next_step = env.control_dt - (time.time() - step_start)
+            if time_until_next_step > 0:
+                time.sleep(time_until_next_step)
 
             if step % config.log_period == 0:
                 stats = {"timer": timer.get_average_times()}
