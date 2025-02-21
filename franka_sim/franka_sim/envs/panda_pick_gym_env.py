@@ -16,7 +16,7 @@ else:
     MUJOCO_PY_IMPORT_ERROR = None
 # from mujoco.glfw import glfw
 
-from franka_sim.controllers import opspace
+from franka_sim.controllers import opspace_control_action, serl_control_action
 from franka_sim.mujoco_gym_env import GymRenderingSpec, MujocoGymEnv
 
 _HERE = Path(__file__).parent
@@ -190,39 +190,8 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
             truncated: bool,
             info: dict[str, Any]
         """
-        x, y, z, rx, ry, rz, grasp = action
-
-        # Set the mocap position.
-        pos = self._data.mocap_pos[0].copy()
-        dpos = np.asarray([x, y, z]) * self._action_scale[0]
-        npos = np.clip(pos + dpos, *_CARTESIAN_BOUNDS)
-        self._data.mocap_pos[0] = npos
-
-        # # Set the mocap orientation.
-        # current_quat = self._data.mocap_quat[0].copy()
-        # delta_quat = self._axis_angle_to_quaternion(np.array([rx, ry, rz]) * self._action_scale[0])
-        # new_quat = self._quaternion_multiply(current_quat, delta_quat)
-        # self._data.mocap_quat[0] = new_quat
-
-        # Set gripper grasp.
-        g = self._data.ctrl[self._gripper_ctrl_id] / 255
-        dg = grasp * self._action_scale[1]
-        ng = np.clip(g + dg, 0.0, 1.0)
-        self._data.ctrl[self._gripper_ctrl_id] = ng * 255
-
-        for _ in range(self._n_substeps):
-            tau = opspace(
-                model=self._model,
-                data=self._data,
-                site_id=self._pinch_site_id,
-                dof_ids=self._panda_dof_ids,
-                pos=self._data.mocap_pos[0],
-                ori=self._data.mocap_quat[0],
-                joint=_PANDA_HOME,
-                gravity_comp=True,
-            )
-            self._data.ctrl[self._panda_ctrl_ids] = tau
-            mujoco.mj_step(self._model, self._data)
+        # opspace_control_action(action, self._model, self._data, self._pinch_site_id, _PANDA_HOME, self._panda_dof_ids, self._panda_ctrl_ids, self._gripper_ctrl_id, self._action_scale, _CARTESIAN_BOUNDS, self._n_substeps)
+        serl_control_action(action, self._model, self._data, self._pinch_site_id, _PANDA_HOME, self._panda_dof_ids, self._panda_ctrl_ids, self._gripper_ctrl_id, self._action_scale, _CARTESIAN_BOUNDS, self._n_substeps)
         obs = self._compute_observation()
         rew = self._compute_reward()
         success = self._is_success()
@@ -280,9 +249,10 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         )
         obs["state"]["gripper_pose"] = gripper_pose
 
+        self.image_list = self.render()
         if self.image_obs:
             obs["images"] = {}
-            obs["images"]["front"], obs["images"]["wrist"] = self.render()
+            obs["images"]["front"], obs["images"]["wrist"] = self.image_list.copy()
         else:
             block_pos = self._data.sensor("block_pos").data.astype(np.float32)
             obs["state"]["block_pos"] = block_pos

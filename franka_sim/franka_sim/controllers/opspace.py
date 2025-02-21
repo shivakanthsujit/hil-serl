@@ -178,3 +178,39 @@ def opspace(
     if gravity_comp:
         tau += data.qfrc_bias[dof_ids]
     return tau
+
+
+def opspace_control_action(action, model, data, pinch_site_id, base_pos, panda_dof_ids, panda_ctrl_ids, gripper_ctrl_id, action_scale, bounds, n_substeps):
+    x, y, z, rx, ry, rz, grasp = action
+
+    # Set the mocap position.
+    pos = data.mocap_pos[0].copy()
+    dpos = np.asarray([x, y, z]) * action_scale[0]
+    npos = np.clip(pos + dpos, *bounds)
+    data.mocap_pos[0] = npos
+
+    # # Set the mocap orientation.
+    # current_quat = data.mocap_quat[0].copy()
+    # delta_quat = axis_angle_to_quaternion(np.array([rx, ry, rz]) * action_scale[0])
+    # new_quat = quaternion_multiply(current_quat, delta_quat)
+    # data.mocap_quat[0] = new_quat
+
+    # Set gripper grasp.
+    g = data.ctrl[gripper_ctrl_id] / 255
+    dg = grasp * action_scale[1]
+    ng = np.clip(g + dg, 0.0, 1.0)
+    data.ctrl[gripper_ctrl_id] = ng * 255
+
+    for _ in range(n_substeps):
+        tau = opspace(
+            model=model,
+            data=data,
+            site_id=pinch_site_id,
+            dof_ids=panda_dof_ids,
+            pos=data.mocap_pos[0],
+            ori=data.mocap_quat[0],
+            joint=base_pos,
+            gravity_comp=True,
+        )
+        data.ctrl[panda_ctrl_ids] = tau
+        mujoco.mj_step(model, data)
